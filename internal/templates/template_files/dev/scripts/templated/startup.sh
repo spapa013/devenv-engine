@@ -9,7 +9,11 @@ DEV_USERNAME="{{.Name}}"
 
 # Path configuration
 PYTHON_BIN_PATH="{{.PythonBinPath}}"
-PYTHON_PATH="${PYTHON_BIN_PATH}/python3"
+if [[ "${PYTHON_BIN_PATH}" == /* ]]; then
+    PYTHON_PATH="${PYTHON_BIN_PATH}/python3"
+else
+    PYTHON_PATH="/${PYTHON_BIN_PATH}/python3"
+fi
 ENV_INIT_SCRIPT="/home/${DEV_USERNAME}/.devenv_init.sh"
 ENV_BASH_SCRIPT="/home/${DEV_USERNAME}/.devenv_bash.sh"
 
@@ -32,26 +36,38 @@ echo "Section 1: Environment and system setup complete"
 echo "Setting up user: ${DEV_USERNAME}"
 
 # Create/rename group with target GID
-if id -g ${TARGET_GID} &>/dev/null; then
-    echo "Renaming group ${TARGET_GID} to ${DEV_USERNAME}"
-    groupmod -n ${DEV_USERNAME} $(id -gn ${TARGET_GID})
+if getent group "${TARGET_GID}" >/dev/null; then
+    EXISTING_GROUP_NAME="$(getent group "${TARGET_GID}" | cut -d: -f1)"
+    if [ "${EXISTING_GROUP_NAME}" != "${DEV_USERNAME}" ]; then
+        echo "Renaming group ${EXISTING_GROUP_NAME} (GID: ${TARGET_GID}) to ${DEV_USERNAME}"
+        groupmod -n "${DEV_USERNAME}" "${EXISTING_GROUP_NAME}"
+    else
+        echo "Group ${DEV_USERNAME} already exists with GID ${TARGET_GID}"
+    fi
 else
     echo "Adding group ${DEV_USERNAME} with GID ${TARGET_GID}"
     groupadd -g ${TARGET_GID} ${DEV_USERNAME}
 fi
 
 # Create/rename user with target UID
-if id -u ${TARGET_UID} &>/dev/null; then
-    echo "Renaming user ${TARGET_UID} to ${DEV_USERNAME}"
-    usermod -l ${DEV_USERNAME} -s /bin/bash -d /home/${DEV_USERNAME} -g ${TARGET_GID} $(id -un ${TARGET_UID})
+if getent passwd "${TARGET_UID}" >/dev/null; then
+    EXISTING_USER_NAME="$(getent passwd "${TARGET_UID}" | cut -d: -f1)"
+    if [ "${EXISTING_USER_NAME}" != "${DEV_USERNAME}" ]; then
+        echo "Renaming user ${EXISTING_USER_NAME} (UID: ${TARGET_UID}) to ${DEV_USERNAME}"
+        usermod -l ${DEV_USERNAME} -s /bin/bash -d /home/${DEV_USERNAME} -g ${TARGET_GID} "${EXISTING_USER_NAME}"
+    else
+        echo "User ${DEV_USERNAME} already exists with UID ${TARGET_UID}; ensuring shell/home/group settings"
+        usermod -s /bin/bash -d /home/${DEV_USERNAME} -g ${TARGET_GID} "${DEV_USERNAME}"
+    fi
 else
     echo "Adding user ${DEV_USERNAME} with UID ${TARGET_UID}"
-    useradd -u ${TARGET_UID} -m -s /bin/bash ${DEV_USERNAME}
+    useradd -u ${TARGET_UID} -g ${TARGET_GID} -m -s /bin/bash ${DEV_USERNAME}
 fi
 
 # Ensure home directory exists and has correct ownership
 mkdir -p "/home/${DEV_USERNAME}"
-chown ${DEV_USERNAME}:${DEV_USERNAME} "/home/${DEV_USERNAME}"
+chown -R ${DEV_USERNAME}:${DEV_USERNAME} "/home/${DEV_USERNAME}"
+chmod -R u+rwX "/home/${DEV_USERNAME}"
 
 echo "Section 2: User management complete"
 
@@ -72,6 +88,13 @@ echo "Section 3: Admin privileges complete"
 # === HOMEBREW INSTALLATION ===
 {{- if .InstallHomebrew}}
 echo "Installing Homebrew for ${DEV_USERNAME}"
+
+# Repair ownership on the mounted linuxbrew path before invoking the installer.
+# This avoids failures when a persistent volume contains stale root-owned or
+# old-UID-owned Homebrew state from a previous run.
+mkdir -p /home/linuxbrew /home/linuxbrew/.linuxbrew
+chown -R ${DEV_USERNAME}:${DEV_USERNAME} /home/linuxbrew
+chmod -R u+rwX /home/linuxbrew
 
 # Create a specific sudoers file for Homebrew installation
 echo "${DEV_USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/homebrew_install
@@ -137,12 +160,12 @@ rm -rf /home/${DEV_USERNAME}/.local/lib/python*/site-packages/*
 # Install common python packages from requirements.txt
 if [ -f /scripts/requirements.txt ]; then
     echo "Installing Python packages from requirements.txt"
-    /bin/bash /scripts/run_with_git.sh ${DEV_USERNAME} ${PYTHON_PATH} -m pip install --no-user --no-cache-dir -r /scripts/requirements.txt
+    /bin/bash /scripts/run_with_git.sh ${DEV_USERNAME} ${PYTHON_PATH} -m pip install --user --no-cache-dir -r /scripts/requirements.txt
 fi
 
 {{- if gt (len .Packages.Python) 0}}
 echo "Installing Python packages: {{range $i, $pkg := .Packages.Python}}{{if gt $i 0}} {{end}}{{$pkg}}{{end}}"
-/bin/bash /scripts/run_with_git.sh ${DEV_USERNAME} ${PYTHON_PATH} -m pip install --no-user --no-cache-dir{{range .Packages.Python}} {{.}}{{end}}
+/bin/bash /scripts/run_with_git.sh ${DEV_USERNAME} ${PYTHON_PATH} -m pip install --user --no-cache-dir{{range .Packages.Python}} {{.}}{{end}}
 {{- end}}
 
 {{- if gt (len .Packages.Brew) 0}}
@@ -181,7 +204,8 @@ rm -rf /home/${DEV_USERNAME}/.vscode-server/
 {{- end}}
 
 
-# Make sure .vscode-server directory is owned by ${DEV_USERNAME}
+# Make sure .vscode-server directory exists and is owned by ${DEV_USERNAME}
+mkdir -p /home/${DEV_USERNAME}/.vscode-server
 chown -R ${DEV_USERNAME}:${DEV_USERNAME} /home/${DEV_USERNAME}/.vscode-server
 
 echo "Section 8: VSCode configuration complete"
