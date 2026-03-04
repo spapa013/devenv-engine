@@ -32,21 +32,32 @@ echo "Section 1: Environment and system setup complete"
 echo "Setting up user: ${DEV_USERNAME}"
 
 # Create/rename group with target GID
-if id -g ${TARGET_GID} &>/dev/null; then
-    echo "Renaming group ${TARGET_GID} to ${DEV_USERNAME}"
-    groupmod -n ${DEV_USERNAME} $(id -gn ${TARGET_GID})
+if GROUP_ENTRY="$(getent group "${TARGET_GID}")"; then
+    EXISTING_GROUP_NAME="${GROUP_ENTRY%%:*}"
+    if [ "${EXISTING_GROUP_NAME}" != "${DEV_USERNAME}" ]; then
+        echo "Renaming group ${EXISTING_GROUP_NAME} (GID: ${TARGET_GID}) to ${DEV_USERNAME}"
+        groupmod -n "${DEV_USERNAME}" "${EXISTING_GROUP_NAME}"
+    else
+        echo "Group ${DEV_USERNAME} already exists with GID ${TARGET_GID}"
+    fi
 else
     echo "Adding group ${DEV_USERNAME} with GID ${TARGET_GID}"
-    groupadd -g ${TARGET_GID} ${DEV_USERNAME}
+    groupadd -g "${TARGET_GID}" "${DEV_USERNAME}"
 fi
 
 # Create/rename user with target UID
-if id -u ${TARGET_UID} &>/dev/null; then
-    echo "Renaming user ${TARGET_UID} to ${DEV_USERNAME}"
-    usermod -l ${DEV_USERNAME} -s /bin/bash -d /home/${DEV_USERNAME} -g ${TARGET_GID} $(id -un ${TARGET_UID})
+if USER_ENTRY="$(getent passwd "${TARGET_UID}")"; then
+    EXISTING_USER_NAME="${USER_ENTRY%%:*}"
+    if [ "${EXISTING_USER_NAME}" != "${DEV_USERNAME}" ]; then
+        echo "Renaming user ${EXISTING_USER_NAME} (UID: ${TARGET_UID}) to ${DEV_USERNAME}"
+        usermod -l "${DEV_USERNAME}" -s /bin/bash -d "/home/${DEV_USERNAME}" -g "${TARGET_GID}" "${EXISTING_USER_NAME}"
+    else
+        echo "User ${DEV_USERNAME} already exists with UID ${TARGET_UID}; ensuring shell/home/group settings"
+        usermod -s /bin/bash -d "/home/${DEV_USERNAME}" -g "${TARGET_GID}" "${DEV_USERNAME}"
+    fi
 else
     echo "Adding user ${DEV_USERNAME} with UID ${TARGET_UID}"
-    useradd -u ${TARGET_UID} -m -s /bin/bash ${DEV_USERNAME}
+    useradd -u "${TARGET_UID}" -g "${TARGET_GID}" -m -s /bin/bash "${DEV_USERNAME}"
 fi
 
 # Ensure home directory exists and has correct ownership
