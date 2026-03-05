@@ -181,6 +181,11 @@ sudo -u ${DEV_USERNAME} brew install{{range .Packages.Brew}} {{.}}{{end}}
 echo "Section 6: Package installation complete"
 
 # === USER ENVIRONMENT SETUP ===
+# Repair ownership across persisted home content before running user-level setup.
+# This prevents failures like ".bashrc: Permission denied" when stale files are
+# carried over from previous runs with mismatched UID/GID ownership.
+chown -R "${DEV_USERNAME}:${DEV_USERNAME}" "/home/${DEV_USERNAME}"
+
 # Set up environment for the user
 if [ -f /scripts/setup.sh ]; then
     echo "Running user environment setup script"
