@@ -152,6 +152,16 @@ rm -rf /home/${DEV_USERNAME}/.cache/pip
 rm -rf /home/${DEV_USERNAME}/.local/lib/python*/site-packages/*
 {{- end}}
 
+# Ensure default venv path exists before Python package installs.
+# This keeps the default pythonBinPath (/opt/venv/bin) functional on images
+# that don't pre-create /opt/venv.
+if [ "${PYTHON_BIN_PATH}" = "/opt/venv/bin" ] && [ ! -x "${PYTHON_PATH}" ]; then
+    echo "Bootstrapping Python virtual environment at /opt/venv"
+    apt-get install -y python3-venv
+    python3 -m venv /opt/venv
+    chown -R "${DEV_USERNAME}:${DEV_USERNAME}" /opt/venv
+fi
+
 # Install common python packages from requirements.txt
 if [ -f /scripts/requirements.txt ]; then
     echo "Installing Python packages from requirements.txt"
