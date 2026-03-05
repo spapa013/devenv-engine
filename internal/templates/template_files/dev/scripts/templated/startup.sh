@@ -84,6 +84,13 @@ echo "Section 3: Admin privileges complete"
 {{- if .InstallHomebrew}}
 echo "Installing Homebrew for ${DEV_USERNAME}"
 
+# Repair ownership on the mounted linuxbrew path before invoking the installer.
+# This handles stale UID/GID ownership from previous runs while avoiding broad
+# recursive mode changes across the entire Homebrew tree.
+mkdir -p /home/linuxbrew /home/linuxbrew/.linuxbrew
+chown -R "${DEV_USERNAME}:${DEV_USERNAME}" /home/linuxbrew
+chmod u+rwx /home/linuxbrew /home/linuxbrew/.linuxbrew
+
 # Create a specific sudoers file for Homebrew installation
 echo "${DEV_USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/homebrew_install
 chmod 440 /etc/sudoers.d/homebrew_install
