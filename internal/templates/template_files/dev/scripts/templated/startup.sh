@@ -199,7 +199,8 @@ rm -rf /home/${DEV_USERNAME}/.vscode-server/
 {{- end}}
 
 
-# Make sure .vscode-server directory is owned by ${DEV_USERNAME}
+# Make sure .vscode-server directory exists and is owned by ${DEV_USERNAME}
+mkdir -p /home/${DEV_USERNAME}/.vscode-server
 chown -R ${DEV_USERNAME}:${DEV_USERNAME} /home/${DEV_USERNAME}/.vscode-server
 
 echo "Section 8: VSCode configuration complete"
