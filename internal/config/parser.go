@@ -20,13 +20,11 @@ func LoadGlobalConfig(configDir string) (*BaseConfig, error) {
 	globalConfig := NewBaseConfigWithDefaults()
 
 	// devenv.yaml is required — fail fast with an actionable message if it is missing.
-	if _, err := os.Stat(globalConfigPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("shared config file not found: %s\n\ndevenv.yaml is required. Create it in %s to define shared settings (image, namespace, hostName, auth, etc.).", globalConfigPath, configDir)
-	}
-
-	// Read the global config file
 	data, err := os.ReadFile(globalConfigPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("shared config file not found: %s\n\ndevenv.yaml is required. Create it in %s to define shared settings (image, namespace, hostName, auth, etc.).", globalConfigPath, configDir)
+		}
 		return nil, fmt.Errorf("failed to read global config file %s: %w", globalConfigPath, err)
 	}
 
@@ -49,19 +47,16 @@ func LoadDeveloperConfig(configDir, developerName string) (*DevEnvConfig, error)
 	developerDir := filepath.Join(configDir, developerName)
 	configPath := filepath.Join(developerDir, "devenv-config.yaml")
 
-	// Check if the config file exists
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("configuration file not found: %s", configPath)
-	}
-
-	// Read the file
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file %s: %w", configPath, err)
-	}
-
 	// Create empty config (no defaults)
 	var config DevEnvConfig
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("configuration file not found: %s", configPath)
+		}
+		return nil, fmt.Errorf("failed to read config file %s: %w", configPath, err)
+	}
 
 	// Parse the YAML
 	if err := yaml.Unmarshal(data, &config); err != nil {
@@ -92,14 +87,11 @@ func LoadDeveloperConfigWithBaseConfig(configDir, developerName string, baseConf
 	developerDir := filepath.Join(configDir, developerName)
 	configPath := filepath.Join(developerDir, "devenv-config.yaml")
 
-	// Check if the config file exists
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("configuration file not found: %s", configPath)
-	}
-
-	// Read the file
 	data, err := os.ReadFile(configPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("configuration file not found: %s", configPath)
+		}
 		return nil, fmt.Errorf("failed to read config file %s: %w", configPath, err)
 	}
 
