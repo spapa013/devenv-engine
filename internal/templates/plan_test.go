@@ -12,88 +12,71 @@ func TestBuildDevRenderPlan(t *testing.T) {
 	t.Run("excludes ingress when HTTP port is unset", func(t *testing.T) {
 		cfg := &config.DevEnvConfig{}
 
-		plan := BuildDevRenderPlan(cfg)
+		plan, err := BuildDevRenderPlan(cfg)
+		require.NoError(t, err)
 
 		assert.Equal(t, expectedDevTemplateNames(false), plan.TemplateNames)
-		assert.Equal(t, copyTemplateNames(devManagedTemplates), plan.ManagedTemplates)
 	})
 
 	t.Run("includes ingress when HTTP port is set", func(t *testing.T) {
 		cfg := &config.DevEnvConfig{HTTPPort: 8080, BaseConfig: config.BaseConfig{HostName: "devenv.example.com"}}
 
-		plan := BuildDevRenderPlan(cfg)
+		plan, err := BuildDevRenderPlan(cfg)
+		require.NoError(t, err)
 
 		assert.Equal(t, expectedDevTemplateNames(true), plan.TemplateNames)
-		assert.Equal(t, copyTemplateNames(devManagedTemplates), plan.ManagedTemplates)
 	})
 
 	t.Run("excludes ingress when hostName is missing", func(t *testing.T) {
 		cfg := &config.DevEnvConfig{HTTPPort: 8080}
 
-		plan := BuildDevRenderPlan(cfg)
+		plan, err := BuildDevRenderPlan(cfg)
+		require.NoError(t, err)
 
 		assert.Equal(t, expectedDevTemplateNames(false), plan.TemplateNames)
-		assert.Equal(t, copyTemplateNames(devManagedTemplates), plan.ManagedTemplates)
 	})
+}
+
+func TestBuildDevRenderPlan_NilConfigReturnsError(t *testing.T) {
+	_, err := BuildDevRenderPlan(nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "BuildDevRenderPlan requires non-nil config")
 }
 
 func TestBuildDevRenderPlan_Contract(t *testing.T) {
 	t.Run("http disabled", func(t *testing.T) {
-		plan := BuildDevRenderPlan(&config.DevEnvConfig{})
+		plan, err := BuildDevRenderPlan(&config.DevEnvConfig{})
+		require.NoError(t, err)
 		assert.Equal(t, []string{"statefulset", "service", "env-vars", "startup-scripts"}, plan.TemplateNames)
-		assert.Equal(t, []string{"statefulset", "service", "env-vars", "startup-scripts", "ingress"}, plan.ManagedTemplates)
 	})
 
 	t.Run("http enabled", func(t *testing.T) {
-		plan := BuildDevRenderPlan(&config.DevEnvConfig{HTTPPort: 8080, BaseConfig: config.BaseConfig{HostName: "devenv.example.com"}})
+		plan, err := BuildDevRenderPlan(&config.DevEnvConfig{HTTPPort: 8080, BaseConfig: config.BaseConfig{HostName: "devenv.example.com"}})
+		require.NoError(t, err)
 		assert.Equal(t, []string{"statefulset", "service", "env-vars", "startup-scripts", "ingress"}, plan.TemplateNames)
-		assert.Equal(t, []string{"statefulset", "service", "env-vars", "startup-scripts", "ingress"}, plan.ManagedTemplates)
 	})
 }
 
 func TestBuildSystemRenderPlan(t *testing.T) {
 	plan := BuildSystemRenderPlan()
 
-	assert.Equal(t, copyTemplateNames(systemBaseTemplates), plan.TemplateNames)
-	assert.Equal(t, copyTemplateNames(systemManagedTemplates), plan.ManagedTemplates)
+	assert.Equal(t, copyTemplateNames(systemTemplates), plan.TemplateNames)
 }
 
 func TestBuildSystemRenderPlan_Contract(t *testing.T) {
 	plan := BuildSystemRenderPlan()
 	assert.Equal(t, []string{"namespace"}, plan.TemplateNames)
-	assert.Equal(t, []string{"namespace"}, plan.ManagedTemplates)
 }
 
-func TestRenderPlans_TargetTemplatesAreManaged(t *testing.T) {
-	t.Run("dev plan", func(t *testing.T) {
-		plan := BuildDevRenderPlan(&config.DevEnvConfig{HTTPPort: 8080, BaseConfig: config.BaseConfig{HostName: "devenv.example.com"}})
-		requireTargetSubsetOfManaged(t, plan.TemplateNames, plan.ManagedTemplates)
-	})
-
-	t.Run("system plan", func(t *testing.T) {
-		plan := BuildSystemRenderPlan()
-		requireTargetSubsetOfManaged(t, plan.TemplateNames, plan.ManagedTemplates)
-	})
-}
-
-func requireTargetSubsetOfManaged(t *testing.T, targetTemplates []string, managedTemplates []string) {
-	t.Helper()
-
-	managedSet := make(map[string]struct{}, len(managedTemplates))
-	for _, templateName := range managedTemplates {
-		managedSet[templateName] = struct{}{}
-	}
-
-	for _, templateName := range targetTemplates {
-		_, ok := managedSet[templateName]
-		require.Truef(t, ok, "target template %q is not managed", templateName)
-	}
+func TestTemplateScopes(t *testing.T) {
+	assert.Equal(t, []string{"statefulset", "service", "env-vars", "startup-scripts", "ingress"}, DevCleanupScope())
+	assert.Equal(t, []string{"namespace"}, SystemCleanupScope())
 }
 
 func expectedDevTemplateNames(includeOptional bool) []string {
-	templateNames := copyTemplateNames(devBaseTemplates)
+	templateNames := []string{"statefulset", "service", "env-vars", "startup-scripts"}
 	if includeOptional {
-		templateNames = append(templateNames, devOptionalTemplates...)
+		templateNames = append(templateNames, "ingress")
 	}
 	return templateNames
 }

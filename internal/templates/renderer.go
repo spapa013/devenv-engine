@@ -26,15 +26,12 @@ type Renderer[T config.BaseConfig | config.DevEnvConfig] struct {
 }
 
 // NewDevRenderer is a convenience wrapper for dev-specific render tests and
-// direct callers. If the codebase standardizes on GenerationSpec + NewRenderer,
-// consider removing this wrapper.
+// direct callers.
 func NewDevRenderer(outputDir string, cfg *config.DevEnvConfig, templateNames []string) *Renderer[config.DevEnvConfig] {
 	return NewRenderer[config.DevEnvConfig](outputDir, "template_files/dev", templateNames, cfg)
 }
 
 // NewSystemRenderer is a convenience wrapper for system-specific direct callers.
-// If the codebase standardizes on GenerationSpec + NewRenderer, consider
-// removing this wrapper.
 func NewSystemRenderer(outputDir string, cfg *config.BaseConfig, templateNames []string) *Renderer[config.BaseConfig] {
 	return NewRenderer[config.BaseConfig](outputDir, "template_files/system", templateNames, cfg)
 }

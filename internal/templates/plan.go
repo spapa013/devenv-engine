@@ -1,41 +1,50 @@
 package templates
 
-import "github.com/nauticalab/devenv-engine/internal/config"
+import (
+	"fmt"
 
-var devBaseTemplates = []string{"statefulset", "service", "env-vars", "startup-scripts"}
+	"github.com/nauticalab/devenv-engine/internal/config"
+)
 
-var devOptionalTemplates = []string{"ingress"}
+var devTemplates = []string{"statefulset", "service", "env-vars", "startup-scripts", "ingress"}
 
-var devManagedTemplates = append(append([]string{}, devBaseTemplates...), devOptionalTemplates...)
+var systemTemplates = []string{"namespace"}
 
-var systemBaseTemplates = []string{"namespace"}
-
-var systemManagedTemplates = append([]string{}, systemBaseTemplates...)
-
-// RenderPlan defines template selection and ownership.
+// RenderPlan defines template selection for a render pass.
 type RenderPlan struct {
-	TemplateNames    []string
-	ManagedTemplates []string
+	TemplateNames []string
 }
 
 // BuildDevRenderPlan computes the template set from config before rendering.
-func BuildDevRenderPlan(cfg *config.DevEnvConfig) RenderPlan {
-	templateNames := append([]string{}, devBaseTemplates...)
+func BuildDevRenderPlan(cfg *config.DevEnvConfig) (RenderPlan, error) {
+	if cfg == nil {
+		return RenderPlan{}, fmt.Errorf("BuildDevRenderPlan requires non-nil config")
+	}
 
-	if cfg != nil && cfg.ShouldRenderIngress() {
-		templateNames = append(templateNames, "ingress")
+	templateNames := make([]string, 0, len(devTemplates))
+	for _, templateName := range devTemplates {
+		if templateName == "ingress" && !cfg.ShouldRenderIngress() {
+			continue
+		}
+		templateNames = append(templateNames, templateName)
 	}
 
 	return RenderPlan{
-		TemplateNames:    templateNames,
-		ManagedTemplates: append([]string{}, devManagedTemplates...),
-	}
+		TemplateNames: templateNames,
+	}, nil
 }
 
 // BuildSystemRenderPlan computes the template set for system-level manifests.
 func BuildSystemRenderPlan() RenderPlan {
 	return RenderPlan{
-		TemplateNames:    append([]string{}, systemBaseTemplates...),
-		ManagedTemplates: append([]string{}, systemManagedTemplates...),
+		TemplateNames: append([]string{}, systemTemplates...),
 	}
+}
+
+func DevCleanupScope() []string {
+	return append([]string{}, devTemplates...)
+}
+
+func SystemCleanupScope() []string {
+	return append([]string{}, systemTemplates...)
 }

@@ -67,10 +67,12 @@ func TestRenderTemplate(t *testing.T) {
 			tempDir := t.TempDir()
 
 			// Create renderer
-			renderer := NewDevRenderer(tempDir, testConfig, BuildDevRenderPlan(testConfig).TemplateNames)
+			plan, err := BuildDevRenderPlan(testConfig)
+			require.NoError(t, err)
+			renderer := NewDevRenderer(tempDir, testConfig, plan.TemplateNames)
 
 			// Render template
-			err := renderer.RenderTemplate(templateName)
+			err = renderer.RenderTemplate(templateName)
 			require.NoError(t, err, "Failed to render template %s", templateName)
 
 			// Read the generated output
@@ -119,12 +121,14 @@ func TestRenderAll(t *testing.T) {
 		}
 
 		tempDir := t.TempDir()
-		renderer := NewDevRenderer(tempDir, testConfig, BuildDevRenderPlan(testConfig).TemplateNames)
+		plan, err := BuildDevRenderPlan(testConfig)
+		require.NoError(t, err)
+		renderer := NewDevRenderer(tempDir, testConfig, plan.TemplateNames)
 
-		err := renderer.RenderAll()
+		err = renderer.RenderAll()
 		require.NoError(t, err, "RenderAll should not return error")
 
-		expectedFiles := templateNamesToFiles(BuildDevRenderPlan(testConfig).TemplateNames)
+		expectedFiles := templateNamesToFiles(plan.TemplateNames)
 
 		for _, filename := range expectedFiles {
 			filePath := filepath.Join(tempDir, filename)
@@ -148,12 +152,14 @@ func TestRenderAll(t *testing.T) {
 		}
 
 		tempDir := t.TempDir()
-		renderer := NewDevRenderer(tempDir, testConfig, BuildDevRenderPlan(testConfig).TemplateNames)
+		plan, err := BuildDevRenderPlan(testConfig)
+		require.NoError(t, err)
+		renderer := NewDevRenderer(tempDir, testConfig, plan.TemplateNames)
 
-		err := renderer.RenderAll()
+		err = renderer.RenderAll()
 		require.NoError(t, err, "RenderAll should not return error")
 
-		expectedFiles := templateNamesToFiles(BuildDevRenderPlan(testConfig).TemplateNames)
+		expectedFiles := templateNamesToFiles(plan.TemplateNames)
 		for _, filename := range expectedFiles {
 			filePath := filepath.Join(tempDir, filename)
 			_, err := os.Stat(filePath)
@@ -213,9 +219,11 @@ func TestRenderTemplate_ErrorCases(t *testing.T) {
 
 	t.Run("invalid template name", func(t *testing.T) {
 		tempDir := t.TempDir()
-		renderer := NewDevRenderer(tempDir, testConfig, BuildDevRenderPlan(testConfig).TemplateNames)
+		plan, err := BuildDevRenderPlan(testConfig)
+		require.NoError(t, err)
+		renderer := NewDevRenderer(tempDir, testConfig, plan.TemplateNames)
 
-		err := renderer.RenderTemplate("nonexistent")
+		err = renderer.RenderTemplate("nonexistent")
 		assert.Error(t, err, "Should return error for invalid template")
 	})
 
@@ -223,9 +231,11 @@ func TestRenderTemplate_ErrorCases(t *testing.T) {
 		// Make the parent path a file so MkdirAll fails deterministically.
 		parentFile := filepath.Join(t.TempDir(), "not-a-directory")
 		require.NoError(t, os.WriteFile(parentFile, []byte("x"), 0o644))
-		renderer := NewDevRenderer(filepath.Join(parentFile, "child"), testConfig, BuildDevRenderPlan(testConfig).TemplateNames)
+		plan, err := BuildDevRenderPlan(testConfig)
+		require.NoError(t, err)
+		renderer := NewDevRenderer(filepath.Join(parentFile, "child"), testConfig, plan.TemplateNames)
 
-		err := renderer.RenderTemplate("env-vars")
+		err = renderer.RenderTemplate("env-vars")
 		assert.Error(t, err, "Should return error for invalid output directory")
 	})
 }
