@@ -10,17 +10,18 @@ import (
 )
 
 // LoadGlobalConfig loads the global configuration file (devenv.yaml) from the config directory.
-// Returns a BaseConfig pre-populated with system defaults. If the global config file exists,
-// YAML values override the defaults. If the file doesn't exist, returns defaults without error.
+// devenv.yaml is mandatory: the function returns an error if the file is absent.
+// When the file exists, YAML values are unmarshalled on top of system defaults so that
+// any field not explicitly set in the file retains its built-in default value.
 func LoadGlobalConfig(configDir string) (*BaseConfig, error) {
 	globalConfigPath := filepath.Join(configDir, "devenv.yaml")
 
 	// Start with system defaults
 	globalConfig := NewBaseConfigWithDefaults()
 
-	// Check if global config file exists
+	// devenv.yaml is required — fail fast with an actionable message if it is missing.
 	if _, err := os.Stat(globalConfigPath); os.IsNotExist(err) {
-		return &globalConfig, nil // Return defaults if file doesn't exist
+		return nil, fmt.Errorf("shared config file not found: %s\n\ndevenv.yaml is required. Create it in %s to define shared settings (image, namespace, hostName, auth, etc.).", globalConfigPath, configDir)
 	}
 
 	// Read the global config file
