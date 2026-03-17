@@ -76,7 +76,7 @@ func init() {
 	generateCmd.Flags().StringVar(&configDir, "config-dir", "./developers", "Directory containing developer configuration files")
 	generateCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show what would be generated without creating files")
 	generateCmd.Flags().BoolVar(&allDevs, "all-developers", false, "Generate manifests for all developers")
-	generateCmd.Flags().BoolVar(&noCleanup, "no-cleanup", false, "Preserve files from previous runs instead of removing unplanned outputs")
+	generateCmd.Flags().BoolVar(&noCleanup, "no-cleanup", false, "Preserve files from previous runs instead of deleting prior generated manifests before rendering")
 
 }
 
@@ -268,41 +268,59 @@ func generateSingleDeveloper(developerName string) {
 }
 
 func generateSystemManifests(cfg *config.BaseConfig, outputDir string) error {
-	postRenderOpts := templates.NewPostRenderOptions(!noCleanup)
-	spec := templates.BuildSystemGenerationSpec(cfg, outputDir, postRenderOpts)
-
-	if err := generateManifests(spec); err != nil {
-		return err
+	if !noCleanup {
+		if err := cleanupTemplateOutputs(outputDir, templates.SystemCleanupScope()); err != nil {
+			return fmt.Errorf("failed to clean output directory: %w", err)
+		}
 	}
 
-	fmt.Printf("🎉 Successfully generated system manifests\n")
-
-	return nil
-}
-
-// generateDeveloperManifests creates Kubernetes manifests for a developer
-func generateDeveloperManifests(cfg *config.DevEnvConfig, outputDir string) error {
-	postRenderOpts := templates.NewPostRenderOptions(!noCleanup)
-	spec := templates.BuildDevGenerationSpec(cfg, outputDir, postRenderOpts)
-
-	if err := generateManifests(spec); err != nil {
-		return err
-	}
-
-	fmt.Printf("🎉 Successfully generated manifests for %s\n", cfg.Name)
-
-	return nil
-}
-
-func generateManifests[T config.BaseConfig | config.DevEnvConfig](spec templates.GenerationSpec[T]) error {
-	renderer := templates.NewRenderer(spec.OutputDir, spec.TemplateRoot, spec.Plan.TemplateNames, spec.Config)
+	plan := templates.BuildSystemRenderPlan()
+	renderer := templates.NewSystemRenderer(outputDir, cfg, plan.TemplateNames)
 
 	if err := renderer.RenderAll(); err != nil {
 		return fmt.Errorf("failed to render templates: %w", err)
 	}
 
-	if err := templates.RunPostRender(spec.OutputDir, spec.Plan, spec.PostRenderOptions); err != nil {
+	if err := templates.RunPostRender(outputDir, plan, templates.NewPostRenderOptions()); err != nil {
 		return fmt.Errorf("failed to run post-render steps: %w", err)
+	}
+
+	fmt.Printf("🎉 Successfully generated system manifests\n")
+	return nil
+}
+
+// generateDeveloperManifests creates Kubernetes manifests for a developer
+func generateDeveloperManifests(cfg *config.DevEnvConfig, outputDir string) error {
+	if !noCleanup {
+		if err := cleanupTemplateOutputs(outputDir, templates.DevCleanupScope()); err != nil {
+			return fmt.Errorf("failed to clean output directory: %w", err)
+		}
+	}
+
+	plan, err := templates.BuildDevRenderPlan(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to build render plan: %w", err)
+	}
+	renderer := templates.NewDevRenderer(outputDir, cfg, plan.TemplateNames)
+
+	if err := renderer.RenderAll(); err != nil {
+		return fmt.Errorf("failed to render templates: %w", err)
+	}
+
+	if err := templates.RunPostRender(outputDir, plan, templates.NewPostRenderOptions()); err != nil {
+		return fmt.Errorf("failed to run post-render steps: %w", err)
+	}
+
+	fmt.Printf("🎉 Successfully generated manifests for %s\n", cfg.Name)
+	return nil
+}
+
+func cleanupTemplateOutputs(outputDir string, templateNames []string) error {
+	for _, templateName := range templateNames {
+		outputPath := filepath.Join(outputDir, templateName+".yaml")
+		if err := os.Remove(outputPath); err != nil && !os.IsNotExist(err) {
+			return err
+		}
 	}
 
 	return nil
