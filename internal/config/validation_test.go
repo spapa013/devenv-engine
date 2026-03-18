@@ -348,6 +348,37 @@ func TestValidateDevEnvConfig_VolumeMountPaths(t *testing.T) {
 	})
 }
 
+func TestValidateDevEnvConfig_GitRepoDirectory(t *testing.T) {
+	newCfg := func(directory string) *DevEnvConfig {
+		return &DevEnvConfig{
+			Name: "alice",
+			BaseConfig: BaseConfig{
+				SSHPublicKey: "ssh-ed25519 AAAAB3NzaC1lZDI1NTE5AAAA user@host",
+				GitRepos: []GitRepo{
+					{
+						URL:       "https://github.com/example/repo",
+						Directory: directory,
+					},
+				},
+			},
+		}
+	}
+
+	t.Run("accepts absolute path", func(t *testing.T) {
+		require.NoError(t, ValidateDevEnvConfig(newCfg("/home/user/repos/myrepo")))
+	})
+
+	t.Run("accepts empty directory (optional field)", func(t *testing.T) {
+		require.NoError(t, ValidateDevEnvConfig(newCfg("")))
+	})
+
+	t.Run("rejects relative path", func(t *testing.T) {
+		err := ValidateDevEnvConfig(newCfg("repos/myrepo"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Directory")
+	})
+}
+
 func TestValidateDevEnvConfig_IngressDependencies(t *testing.T) {
 	newCfg := func() *DevEnvConfig {
 		return &DevEnvConfig{
