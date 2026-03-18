@@ -28,6 +28,7 @@ func TestRenderTemplate(t *testing.T) {
 			Image:     "ubuntu:22.04",
 			Namespace: "devenv-test",
 			HostName:  "devenv.example.com",
+			HomeDirMountBase: "/mnt/devenv",
 			Packages: config.PackageConfig{
 				Python: []string{"numpy", "pandas"},
 				APT:    []string{"vim", "curl"},

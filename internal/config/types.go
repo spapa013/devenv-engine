@@ -22,6 +22,9 @@ type BaseConfig struct {
 
 	// Storage configuration
 	Volumes []VolumeMount `yaml:"volumes,omitempty" validate:"dive"`
+	// HomeDirMountBase is the host path prefix under which per-developer home
+	// and linuxbrew volumes are created (e.g. /mnt/devenv → /mnt/devenv/<name>/homedir).
+	HomeDirMountBase string `yaml:"homeDirMountBase,omitempty" validate:"omitempty,mount_path"`
 
 	// Access configuration
 	SSHPublicKey any `yaml:"sshPublicKey,omitempty" validate:"omitempty,ssh_keys"` // Can be string or []string
@@ -128,6 +131,7 @@ func NewBaseConfigWithDefaults() BaseConfig {
 		},
 		GitRepos:        []GitRepo{},     // Empty slice - no default git repositories
 		Volumes:         []VolumeMount{}, // Empty slice - no default volumes
+		HomeDirMountBase: "/mnt/devenv", // Default host path prefix for home/linuxbrew volumes
 		Namespace:       "devenv",        // Default namespace
 		EnvironmentName: "development",   // Default environment name
 	}
