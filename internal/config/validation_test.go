@@ -253,8 +253,8 @@ func TestValidateBaseConfig_PythonBinPathMustBeAbsolute(t *testing.T) {
 	bad := &BaseConfig{PythonBinPath: "usr/bin"}
 	err := ValidateBaseConfig(bad)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "pythonBinPath")
-	assert.Contains(t, err.Error(), "absolute path")
+	assert.Contains(t, err.Error(), "PythonBinPath")
+	assert.Contains(t, err.Error(), "absolute mount path")
 }
 
 func TestValidateDevEnvConfig_PythonBinPathMustBeAbsolute(t *testing.T) {
@@ -276,8 +276,8 @@ func TestValidateDevEnvConfig_PythonBinPathMustBeAbsolute(t *testing.T) {
 	}
 	err := ValidateDevEnvConfig(bad)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "pythonBinPath")
-	assert.Contains(t, err.Error(), "absolute path")
+	assert.Contains(t, err.Error(), "PythonBinPath")
+	assert.Contains(t, err.Error(), "absolute mount path")
 }
 
 func TestValidator_MountPath(t *testing.T) {
