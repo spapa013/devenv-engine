@@ -81,7 +81,7 @@ tasks:
       - GOOS=darwin  GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o {{.DIST_DIR}}/{{.BINARY_NAME}}_{{.VERSION}}_darwin_amd64    ./{{.SOURCE_DIR}}
       - GOOS=darwin  GOARCH=arm64 go build -ldflags="{{.LDFLAGS}}" -o {{.DIST_DIR}}/{{.BINARY_NAME}}_{{.VERSION}}_darwin_arm64    ./{{.SOURCE_DIR}}
       - GOOS=windows GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o {{.DIST_DIR}}/{{.BINARY_NAME}}_{{.VERSION}}_windows_amd64.exe ./{{.SOURCE_DIR}}
-      - cd {{.DIST_DIR}} && sha256sum * > checksums.txt
+      - cd {{.DIST_DIR}} && sha256sum $(ls | grep -v checksums.txt) > checksums.txt
       - echo "✅ dist/ ready ({{.VERSION}})"
 
   test:
