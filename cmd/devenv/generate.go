@@ -281,10 +281,6 @@ func generateSystemManifests(cfg *config.BaseConfig, outputDir string) error {
 		return fmt.Errorf("failed to render templates: %w", err)
 	}
 
-	if err := templates.RunPostRender(outputDir, templates.NewPostRenderOptions()); err != nil {
-		return fmt.Errorf("failed to run post-render steps: %w", err)
-	}
-
 	fmt.Printf("🎉 Successfully generated system manifests\n")
 	return nil
 }
@@ -305,10 +301,6 @@ func generateDeveloperManifests(cfg *config.DevEnvConfig, outputDir string) erro
 
 	if err := renderer.RenderAll(); err != nil {
 		return fmt.Errorf("failed to render templates: %w", err)
-	}
-
-	if err := templates.RunPostRender(outputDir, templates.NewPostRenderOptions()); err != nil {
-		return fmt.Errorf("failed to run post-render steps: %w", err)
 	}
 
 	fmt.Printf("🎉 Successfully generated manifests for %s\n", cfg.Name)
