@@ -1,10 +1,6 @@
 package templates
 
-import (
-	"fmt"
-
-	"github.com/nauticalab/devenv-engine/internal/config"
-)
+import "github.com/nauticalab/devenv-engine/internal/config"
 
 var devTemplates = []string{"statefulset", "service", "env-vars", "startup-scripts", "ingress"}
 
@@ -12,10 +8,6 @@ var systemTemplates = []string{"namespace"}
 
 // BuildDevRenderPlan computes the template set from config before rendering.
 func BuildDevRenderPlan(cfg *config.DevEnvConfig) ([]string, error) {
-	if cfg == nil {
-		return nil, fmt.Errorf("BuildDevRenderPlan requires non-nil config")
-	}
-
 	templateNames := make([]string, 0, len(devTemplates))
 	for _, templateName := range devTemplates {
 		if templateName == "ingress" && !cfg.ShouldRenderIngress() {

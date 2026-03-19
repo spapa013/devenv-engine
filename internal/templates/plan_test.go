@@ -37,12 +37,6 @@ func TestBuildDevRenderPlan(t *testing.T) {
 	})
 }
 
-func TestBuildDevRenderPlan_NilConfigReturnsError(t *testing.T) {
-	_, err := BuildDevRenderPlan(nil)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "BuildDevRenderPlan requires non-nil config")
-}
-
 func TestBuildDevRenderPlan_Contract(t *testing.T) {
 	t.Run("http disabled", func(t *testing.T) {
 		templateNames, err := BuildDevRenderPlan(&config.DevEnvConfig{})
