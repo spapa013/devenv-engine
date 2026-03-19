@@ -224,12 +224,12 @@ func (c *DevEnvConfig) NodePort() int {
 
 // HasHTTPPort reports whether HTTP exposure is configured.
 func (c *DevEnvConfig) HasHTTPPort() bool {
-	return c != nil && c.HTTPPort != 0
+	return c.HTTPPort != 0
 }
 
 // HasHostName reports whether a non-empty ingress hostname is configured.
 func (c *DevEnvConfig) HasHostName() bool {
-	return c != nil && strings.TrimSpace(c.HostName) != ""
+	return strings.TrimSpace(c.HostName) != ""
 }
 
 // ShouldRenderIngress reports whether ingress can be safely rendered.
