@@ -8,6 +8,6 @@ func NewPostRenderOptions() PostRenderOptions {
 }
 
 // RunPostRender executes post-render steps for a completed render pass.
-func RunPostRender(outputDir string, plan RenderPlan, opts PostRenderOptions) error {
+func RunPostRender(outputDir string, opts PostRenderOptions) error {
 	return nil
 }

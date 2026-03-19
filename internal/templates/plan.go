@@ -10,15 +10,10 @@ var devTemplates = []string{"statefulset", "service", "env-vars", "startup-scrip
 
 var systemTemplates = []string{"namespace"}
 
-// RenderPlan defines template selection for a render pass.
-type RenderPlan struct {
-	TemplateNames []string
-}
-
 // BuildDevRenderPlan computes the template set from config before rendering.
-func BuildDevRenderPlan(cfg *config.DevEnvConfig) (RenderPlan, error) {
+func BuildDevRenderPlan(cfg *config.DevEnvConfig) ([]string, error) {
 	if cfg == nil {
-		return RenderPlan{}, fmt.Errorf("BuildDevRenderPlan requires non-nil config")
+		return nil, fmt.Errorf("BuildDevRenderPlan requires non-nil config")
 	}
 
 	templateNames := make([]string, 0, len(devTemplates))
@@ -29,16 +24,12 @@ func BuildDevRenderPlan(cfg *config.DevEnvConfig) (RenderPlan, error) {
 		templateNames = append(templateNames, templateName)
 	}
 
-	return RenderPlan{
-		TemplateNames: templateNames,
-	}, nil
+	return templateNames, nil
 }
 
 // BuildSystemRenderPlan computes the template set for system-level manifests.
-func BuildSystemRenderPlan() RenderPlan {
-	return RenderPlan{
-		TemplateNames: append([]string{}, systemTemplates...),
-	}
+func BuildSystemRenderPlan() []string {
+	return append([]string{}, systemTemplates...)
 }
 
 func DevCleanupScope() []string {

@@ -274,14 +274,14 @@ func generateSystemManifests(cfg *config.BaseConfig, outputDir string) error {
 		}
 	}
 
-	plan := templates.BuildSystemRenderPlan()
-	renderer := templates.NewSystemRenderer(outputDir, cfg, plan.TemplateNames)
+	templateNames := templates.BuildSystemRenderPlan()
+	renderer := templates.NewSystemRenderer(outputDir, cfg, templateNames)
 
 	if err := renderer.RenderAll(); err != nil {
 		return fmt.Errorf("failed to render templates: %w", err)
 	}
 
-	if err := templates.RunPostRender(outputDir, plan, templates.NewPostRenderOptions()); err != nil {
+	if err := templates.RunPostRender(outputDir, templates.NewPostRenderOptions()); err != nil {
 		return fmt.Errorf("failed to run post-render steps: %w", err)
 	}
 
@@ -297,17 +297,17 @@ func generateDeveloperManifests(cfg *config.DevEnvConfig, outputDir string) erro
 		}
 	}
 
-	plan, err := templates.BuildDevRenderPlan(cfg)
+	templateNames, err := templates.BuildDevRenderPlan(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to build render plan: %w", err)
 	}
-	renderer := templates.NewDevRenderer(outputDir, cfg, plan.TemplateNames)
+	renderer := templates.NewDevRenderer(outputDir, cfg, templateNames)
 
 	if err := renderer.RenderAll(); err != nil {
 		return fmt.Errorf("failed to render templates: %w", err)
 	}
 
-	if err := templates.RunPostRender(outputDir, plan, templates.NewPostRenderOptions()); err != nil {
+	if err := templates.RunPostRender(outputDir, templates.NewPostRenderOptions()); err != nil {
 		return fmt.Errorf("failed to run post-render steps: %w", err)
 	}
 

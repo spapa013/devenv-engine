@@ -7,6 +7,6 @@ import (
 )
 
 func TestRunPostRender_NoOp(t *testing.T) {
-	err := RunPostRender(t.TempDir(), RenderPlan{TemplateNames: []string{"namespace"}}, NewPostRenderOptions())
+	err := RunPostRender(t.TempDir(), NewPostRenderOptions())
 	require.NoError(t, err)
 }

@@ -12,28 +12,28 @@ func TestBuildDevRenderPlan(t *testing.T) {
 	t.Run("excludes ingress when HTTP port is unset", func(t *testing.T) {
 		cfg := &config.DevEnvConfig{}
 
-		plan, err := BuildDevRenderPlan(cfg)
+		templateNames, err := BuildDevRenderPlan(cfg)
 		require.NoError(t, err)
 
-		assert.Equal(t, expectedDevTemplateNames(false), plan.TemplateNames)
+		assert.Equal(t, expectedDevTemplateNames(false), templateNames)
 	})
 
 	t.Run("includes ingress when HTTP port is set", func(t *testing.T) {
 		cfg := &config.DevEnvConfig{HTTPPort: 8080, BaseConfig: config.BaseConfig{HostName: "devenv.example.com"}}
 
-		plan, err := BuildDevRenderPlan(cfg)
+		templateNames, err := BuildDevRenderPlan(cfg)
 		require.NoError(t, err)
 
-		assert.Equal(t, expectedDevTemplateNames(true), plan.TemplateNames)
+		assert.Equal(t, expectedDevTemplateNames(true), templateNames)
 	})
 
 	t.Run("excludes ingress when hostName is missing", func(t *testing.T) {
 		cfg := &config.DevEnvConfig{HTTPPort: 8080}
 
-		plan, err := BuildDevRenderPlan(cfg)
+		templateNames, err := BuildDevRenderPlan(cfg)
 		require.NoError(t, err)
 
-		assert.Equal(t, expectedDevTemplateNames(false), plan.TemplateNames)
+		assert.Equal(t, expectedDevTemplateNames(false), templateNames)
 	})
 }
 
@@ -45,27 +45,27 @@ func TestBuildDevRenderPlan_NilConfigReturnsError(t *testing.T) {
 
 func TestBuildDevRenderPlan_Contract(t *testing.T) {
 	t.Run("http disabled", func(t *testing.T) {
-		plan, err := BuildDevRenderPlan(&config.DevEnvConfig{})
+		templateNames, err := BuildDevRenderPlan(&config.DevEnvConfig{})
 		require.NoError(t, err)
-		assert.Equal(t, []string{"statefulset", "service", "env-vars", "startup-scripts"}, plan.TemplateNames)
+		assert.Equal(t, []string{"statefulset", "service", "env-vars", "startup-scripts"}, templateNames)
 	})
 
 	t.Run("http enabled", func(t *testing.T) {
-		plan, err := BuildDevRenderPlan(&config.DevEnvConfig{HTTPPort: 8080, BaseConfig: config.BaseConfig{HostName: "devenv.example.com"}})
+		templateNames, err := BuildDevRenderPlan(&config.DevEnvConfig{HTTPPort: 8080, BaseConfig: config.BaseConfig{HostName: "devenv.example.com"}})
 		require.NoError(t, err)
-		assert.Equal(t, []string{"statefulset", "service", "env-vars", "startup-scripts", "ingress"}, plan.TemplateNames)
+		assert.Equal(t, []string{"statefulset", "service", "env-vars", "startup-scripts", "ingress"}, templateNames)
 	})
 }
 
 func TestBuildSystemRenderPlan(t *testing.T) {
-	plan := BuildSystemRenderPlan()
+	templateNames := BuildSystemRenderPlan()
 
-	assert.Equal(t, copyTemplateNames(systemTemplates), plan.TemplateNames)
+	assert.Equal(t, copyTemplateNames(systemTemplates), templateNames)
 }
 
 func TestBuildSystemRenderPlan_Contract(t *testing.T) {
-	plan := BuildSystemRenderPlan()
-	assert.Equal(t, []string{"namespace"}, plan.TemplateNames)
+	templateNames := BuildSystemRenderPlan()
+	assert.Equal(t, []string{"namespace"}, templateNames)
 }
 
 func TestTemplateScopes(t *testing.T) {
